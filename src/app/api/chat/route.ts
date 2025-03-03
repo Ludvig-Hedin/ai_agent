@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fetch from 'node-fetch';
+import { Message, AgentAction } from '@/types';
 
-// Function to call Ollama API running locally
-async function callLocalLLM(prompt: string, model: string = 'deepseek-coder') {
+// Interface for Ollama API response
+interface OllamaResponse {
+  model: string;
+  created_at: string;
+  response: string;
+  done: boolean;
+  context?: number[];
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
+// Simulate thinking and processing time
+const simulateThinking = async () => {
+  return new Promise((resolve) => setTimeout(resolve, 1000));
+};
+
+// Function to call a local LLM via Ollama
+async function callLocalLLM(prompt: string, modelName: string = 'deepseek-coder') {
   try {
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
@@ -10,9 +30,12 @@ async function callLocalLLM(prompt: string, model: string = 'deepseek-coder') {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
-        prompt,
+        model: modelName,
+        prompt: prompt,
         stream: false,
+        options: {
+          temperature: 0.6, // DeepSeek recommends 0.6
+        }
       }),
     });
 
@@ -20,7 +43,7 @@ async function callLocalLLM(prompt: string, model: string = 'deepseek-coder') {
       throw new Error(`Ollama API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as OllamaResponse;
     return data.response;
   } catch (error) {
     console.error('Error calling local LLM:', error);
@@ -28,97 +51,74 @@ async function callLocalLLM(prompt: string, model: string = 'deepseek-coder') {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { message, modelConfig } = await request.json();
-
-    if (!message) {
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      );
-    }
-
-    console.log(`Using model: ${modelConfig.name} (${modelConfig.provider})`);
+    const { message, selectedModel } = await req.json();
     
-    // Different handling based on the model
-    let responseText = '';
-    let thinking = '';
+    // Log the incoming request
+    console.log('Received request:', { message, modelType: selectedModel?.name });
     
-    // Simulate processing time for remote models
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Simulate AI thinking
+    await simulateThinking();
     
-    try {
-      if (modelConfig.id === 'deepseek-chat' && process.env.USE_LOCAL_LLM === 'true') {
-        // Call locally hosted DeepSeek via Ollama
-        thinking = "Processing with local DeepSeek model...";
-        console.log("Calling local DeepSeek model via Ollama...");
+    let response: string;
+    let agentActions: AgentAction[] = [];
+    
+    // Check if we should use local LLM
+    if (process.env.USE_LOCAL_LLM === 'true' && selectedModel?.provider === 'Self-hosted') {
+      try {
+        // Construct prompt following DeepSeek's recommendation
+        const prompt = `<think>\n\nPlease answer the following question thoroughly and show your reasoning: ${message.content}\n</think>`;
+        response = await callLocalLLM(prompt, selectedModel?.apiConfig?.model || 'deepseek-coder');
         
-        const systemPrompt = "You are an AI agent that can control a web browser to perform tasks. Respond briefly with what you would do to fulfill the user's request.";
-        const fullPrompt = `${systemPrompt}\n\nUser request: ${message}\n\nHow would you approach this task?`;
-        
-        try {
-          responseText = await callLocalLLM(fullPrompt, 'deepseek-coder');
-        } catch (error) {
-          console.error("Error calling local LLM:", error);
-          responseText = "I encountered an error connecting to the local DeepSeek model. Please ensure Ollama is running with the DeepSeek model loaded (`ollama serve` and `ollama pull deepseek-coder`).";
-        }
-      } else {
-        // Use mock responses for different models (for demo purposes)
-        switch (modelConfig.id) {
-          case 'deepseek-chat':
-            thinking = "Processing with DeepSeek model. Analyzing request and planning browser actions...";
-            responseText = `I'll help you with that using DeepSeek's capabilities. Your request was: "${message}"\n\nIn a real implementation, I would be calling the DeepSeek API via the browser-use agent to perform the requested actions in a browser.`;
-            break;
-          
-          case 'claude':
-            thinking = "Processing with Claude model. Analyzing request and planning browser actions...";
-            responseText = `I'm using Claude to understand and help with your request: "${message}"\n\nIn a full implementation, I would use Anthropic's Claude model through the browser-use agent to perform browser actions.`;
-            break;
-            
-          case 'gpt4o':
-          default:
-            thinking = "Processing with GPT-4o model. Analyzing request and planning browser actions...";
-            responseText = `I'll assist you with that using OpenAI's capabilities. You asked: "${message}"\n\nIn a real implementation, I would be calling the OpenAI API via the browser-use agent to perform browser tasks.`;
-            break;
-        }
+        // Add thinking to agent actions
+        agentActions.push({
+          type: 'thinking',
+          description: 'Processing user request and generating response',
+          details: 'Analyzing the query and formulating a comprehensive answer',
+        });
+      } catch (error) {
+        console.error('Local LLM error:', error);
+        response = "I'm sorry, there was an error connecting to the local DeepSeek model. Please ensure Ollama is running with the DeepSeek model installed (`ollama pull deepseek-coder`)";
       }
+    } else {
+      // Mock response for other models
+      response = `I'm responding to: "${message.content}"\n\nThis is a mock response since we're using a mock API. In a real implementation, this would be connected to ${selectedModel?.name} from ${selectedModel?.provider}.`;
       
-      return NextResponse.json({
-        response: responseText,
-        thinking: thinking,
-        actions: [
-          {
-            action: "Analyzed user request",
-            thought: `Using ${modelConfig.name} to understand what the user is asking for. The request appears to be about: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`
-          },
-          {
-            action: "Planning browser automation",
-            thought: "Determining what browser actions would be needed to fulfill this request."
-          },
-          {
-            action: "Ready to execute",
-            thought: "In a complete implementation, I would now execute the planned actions in a browser using browser-use."
-          }
-        ]
-      });
-    } catch (error) {
-      console.error('Error processing model response:', error);
-      return NextResponse.json({
-        response: "I encountered an error processing your request. Please try again or check the server logs.",
-        thinking: "Error encountered during processing",
-        actions: [
-          {
-            action: "Error processing request",
-            thought: "An error occurred while trying to process your request."
-          }
-        ]
-      });
+      // Add thinking and actions to simulate the agent's process
+      agentActions = [
+        {
+          type: 'thinking',
+          description: 'Understanding the user query',
+          details: 'Analyzing the question to determine the appropriate response strategy',
+        },
+        {
+          type: 'search',
+          description: 'Searching knowledge base',
+          details: 'Looking up relevant information to formulate a comprehensive answer',
+        },
+        {
+          type: 'processing',
+          description: 'Formulating response',
+          details: 'Organizing information into a coherent and helpful answer',
+        }
+      ];
     }
+    
+    // Return the response
+    return NextResponse.json({
+      message: {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: response,
+        timestamp: Date.now(),
+      },
+      agentActions,
+    });
   } catch (error) {
-    console.error('Error processing chat request:', error);
+    console.error('Error processing request:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to process request' },
       { status: 500 }
     );
   }

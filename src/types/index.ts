@@ -10,17 +10,17 @@ export interface AIModelConfig {
   name: string;
   provider: string;
   description: string;
-  apiConfig?: {
-    apiKey?: string;
+  apiConfig: {
     baseUrl?: string;
-    model?: string;
+    model: string;
   };
 }
 
 export interface AgentAction {
-  action: string;
-  thought: string;
-  timestamp: number;
+  type: string;
+  description: string;
+  details?: string;
+  timestamp?: number;
 }
 
 export interface AgentState {
@@ -40,7 +40,8 @@ export interface ChatState {
 
 export interface Connection {
   id: string;
+  type: string;
   name: string;
-  type: 'google-docs' | 'github' | 'other';
-  isConnected: boolean;
+  status: 'connected' | 'disconnected' | 'connecting';
+  lastConnected?: number;
 } 

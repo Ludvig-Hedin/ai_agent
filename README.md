@@ -2,8 +2,6 @@
 
 A ChatGPT-like interface for interacting with browser-use AI agents. This application allows you to send prompts to AI models including OpenAI GPT-4o, Anthropic Claude, and locally hosted DeepSeek.
 
-![AI Agent UI Screenshot](public/screenshot.png)
-
 ## Features
 
 - 🤖 Chat with AI models in a familiar ChatGPT-like interface
