@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event: string, session: any) => {
+      async (event, session) => {
         if (session?.user) {
           setUser(session.user as User);
         } else {

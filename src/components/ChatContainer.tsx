@@ -149,7 +149,7 @@ export default function ChatContainer() {
                 <AgentState
                   isThinking={agentState.isThinking}
                   actions={agentState.actions}
-                  currentTask={agentState.currentTask}
+                  currentTask={agentState.currentTask || ''}
                 />
               )}
               <div ref={messagesEndRef} />

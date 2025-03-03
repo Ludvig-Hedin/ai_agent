@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FiArrowRight } from 'react-icons/fi';
 
 export default function Home() {
   const router = useRouter();
@@ -26,11 +25,6 @@ export default function Home() {
 
       {/* Main content */}
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-        <div className="text-sm text-gray-400">
-          <span className="mr-2">November 30, 2023</span>
-          <span className="ml-2">Product</span>
-        </div>
-        
         <h1 className="mt-8 text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
           Introducing AI Agent
         </h1>
@@ -40,14 +34,14 @@ export default function Home() {
             href="/chat" 
             className="flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-base font-medium text-black hover:bg-gray-200"
           >
-            Try AI Agent <FiArrowRight />
+            Try AI Agent
           </Link>
           
           <Link 
             href="/login" 
             className="flex items-center justify-center gap-2 rounded-full border border-gray-600 px-6 py-3 text-base font-medium text-white hover:bg-dark-700"
           >
-            Sign in to continue <FiArrowRight />
+            Sign in to continue
           </Link>
         </div>
         
@@ -55,7 +49,7 @@ export default function Home() {
           href="/about" 
           className="mt-6 flex items-center justify-center gap-1 text-base text-gray-400 hover:text-white"
         >
-          Learn about AI Agent <FiArrowRight className="h-4 w-4" />
+          Learn about AI Agent
         </Link>
         
         <div className="mt-32 max-w-2xl">
