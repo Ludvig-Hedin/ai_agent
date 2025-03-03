@@ -43,37 +43,37 @@ export default function ChatInput({ onSendMessage, isDisabled = false }: ChatInp
   return (
     <div className="relative mx-auto w-full max-w-3xl">
       <form onSubmit={handleSubmit} className="relative">
-        <div className="overflow-hidden rounded-2xl border border-dark-400 bg-dark-800 shadow-lg">
+        <div className="overflow-hidden rounded-lg border border-gray-600 bg-gray-700 shadow-lg">
           <textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask a question or give instructions..."
-            className="w-full resize-none bg-transparent px-4 py-4 pr-14 text-white focus:outline-none"
+            className="w-full resize-none bg-transparent px-4 py-3 pr-14 text-white focus:outline-none"
             rows={1}
             disabled={isDisabled}
           />
           
-          <div className="flex items-center justify-between border-t border-dark-600 px-3 py-2">
+          <div className="flex items-center justify-between border-t border-gray-600 px-3 py-2">
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="rounded p-2 text-gray-400 hover:bg-dark-700 hover:text-white"
+                className="rounded p-2 text-gray-400 hover:bg-gray-600 hover:text-white transition-colors"
                 aria-label="Attach file"
               >
                 <FiPaperclip size={16} />
               </button>
               <button
                 type="button"
-                className="rounded p-2 text-gray-400 hover:bg-dark-700 hover:text-white"
+                className="rounded p-2 text-gray-400 hover:bg-gray-600 hover:text-white transition-colors"
                 aria-label="Search"
               >
                 <FiSearch size={16} />
               </button>
               <button
                 type="button"
-                className="rounded p-2 text-gray-400 hover:bg-dark-700 hover:text-white"
+                className="rounded p-2 text-gray-400 hover:bg-gray-600 hover:text-white transition-colors"
                 aria-label="Suggestions"
               >
                 <FiMessageCircle size={16} />
@@ -84,9 +84,9 @@ export default function ChatInput({ onSendMessage, isDisabled = false }: ChatInp
               type="submit"
               className={`flex h-8 w-8 items-center justify-center rounded-md ${
                 message.trim() && !isDisabled
-                  ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'bg-dark-600 text-gray-400'
-              }`}
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-600 text-gray-400'
+              } transition-colors`}
               disabled={!message.trim() || isDisabled}
               aria-label="Send message"
             >
