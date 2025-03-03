@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await auth.signIn(email, password);
+      const { data, error } = await auth.signInWithEmail(email, password);
       
       if (error) {
         return { error };
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await auth.signUp(email, password);
+      const { data, error } = await auth.signUpWithEmail(email, password);
       
       if (error) {
         return { error };

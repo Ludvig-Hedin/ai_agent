@@ -1,86 +1,73 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Check if we're in a browser environment
+// Types for auth-related entities
+export type User = any; // Replace with proper type when available
+export type AuthSession = any; // Replace with proper type when available
+
+// Check if we are in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Mock supabase client for server-side rendering and static builds
-const mockClient = {
-  auth: {
-    signUp: async () => ({ data: null, error: null }),
-    signInWithPassword: async () => ({ data: null, error: null }),
-    signOut: async () => ({ error: null }),
-    getSession: async () => ({ data: { session: null }, error: null }),
-    getUser: async () => ({ data: { user: null }, error: null }),
-    resetPasswordForEmail: async () => ({ error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null })
-  }
-};
+// Get environment variables with fallbacks
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Create a real or mock client based on environment
-const createSupabaseClient = () => {
-  if (!isBrowser) {
-    return mockClient;
-  }
+// Create the Supabase client
+export const supabase = isBrowser 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : { 
+      auth: {
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
+        signInWithOAuth: () => Promise.resolve({ data: {}, error: null }),
+        signUp: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
+        signOut: () => Promise.resolve({ error: null }),
+        resetPasswordForEmail: () => Promise.resolve({ error: null }),
+        updateUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        exchangeCodeForSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      }
+    } as any;
 
-  // Only create real client in browser environment
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
-  
-  try {
-    return createClient(supabaseUrl, supabaseAnonKey);
-  } catch (e) {
-    console.error('Error creating Supabase client:', e);
-    return mockClient;
-  }
-};
-
-export const supabase = createSupabaseClient();
-
-// Define types for user and session
-export type User = {
-  id: string;
-  email: string;
-  user_metadata?: {
-    name?: string;
-  };
-};
-
-export type AuthSession = {
-  user: User | null;
-  access_token: string | null;
-  refresh_token: string | null;
-};
-
-// Authentication helper functions that work with both real and mock clients
+// Authentication helper functions
 export const auth = {
-  // Sign up with email and password
-  async signUp(email: string, password: string) {
-    return await supabase.auth.signUp({ email, password });
+  signInWithEmail: async (email: string, password: string) => {
+    return supabase.auth.signInWithPassword({ email, password });
   },
   
-  // Sign in with email and password
-  async signIn(email: string, password: string) {
-    return await supabase.auth.signInWithPassword({ email, password });
+  signUpWithEmail: async (email: string, password: string) => {
+    return supabase.auth.signUp({ email, password });
   },
   
-  // Sign out
-  async signOut() {
-    return await supabase.auth.signOut();
+  signOut: async () => {
+    return supabase.auth.signOut();
   },
   
-  // Get current session
-  async getSession() {
-    return await supabase.auth.getSession();
+  resetPassword: async (email: string) => {
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: isBrowser ? `${window.location.origin}/auth/reset-password` : '',
+    });
   },
   
-  // Get current user
-  async getUser() {
-    const { data } = await supabase.auth.getUser();
-    return data?.user;
+  updatePassword: async (password: string) => {
+    return supabase.auth.updateUser({
+      password: password
+    });
   },
   
-  // Reset password (sends password reset email)
-  async resetPassword(email: string) {
-    return await supabase.auth.resetPasswordForEmail(email);
-  }
+  signInWithGoogle: async () => {
+    return supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: isBrowser ? `${window.location.origin}/auth/callback` : '',
+      },
+    });
+  },
+  
+  getSession: async () => {
+    return supabase.auth.getSession();
+  },
+  
+  getUser: async () => {
+    return supabase.auth.getUser();
+  },
 }; 
