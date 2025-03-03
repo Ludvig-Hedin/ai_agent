@@ -26,7 +26,7 @@ async function callExternalAI(message: string, modelId: string, provider: string
   console.log(`Calling ${provider} AI model: ${modelId}`);
   
   // Simulate processing time
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   // Mock response based on provider
   switch (provider.toLowerCase()) {
@@ -105,9 +105,11 @@ export async function POST(req: NextRequest) {
     // Extract potential browser actions from the message
     const browserActions = extractBrowserActions(message.content);
     
-    // Initialize browser if needed
+    // Initialize browser if needed and if browser automation is enabled
     let browserInitialized = false;
-    if (browserActions.length > 0 && process.env.ENABLE_BROWSER_AUTOMATION === 'true') {
+    const enableBrowserAutomation = process.env.NEXT_PUBLIC_ENABLE_BROWSER_AUTOMATION === 'true';
+    
+    if (browserActions.length > 0 && enableBrowserAutomation) {
       try {
         await browserAutomation.initialize();
         browserInitialized = true;
@@ -119,11 +121,11 @@ export async function POST(req: NextRequest) {
     // Call the external AI API for the response
     const aiResponse = await callExternalAI(
       message.content,
-      selectedModel.id,
-      selectedModel.provider
+      selectedModel?.id || 'default-model',
+      selectedModel?.provider || 'default-provider'
     );
     
-    // Execute browser actions and collect results
+    // Execute browser actions and collect results if browser was initialized
     let executionResults = '';
     if (browserInitialized) {
       for (const action of browserActions) {
@@ -186,7 +188,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error processing request:', error);
     return NextResponse.json(
-      { error: 'Failed to process request' },
+      { 
+        message: {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: 'An error occurred while processing your request. Please try again.',
+          timestamp: Date.now(),
+        }
+      },
       { status: 500 }
     );
   }
