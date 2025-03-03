@@ -3,64 +3,60 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function Home() {
-  const router = useRouter();
-
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
-      {/* Header */}
-      <header className="border-b border-dark-700 px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="text-3xl font-bold">AI Agent</div>
-          <div className="hidden space-x-6 md:flex">
-            <button
-              onClick={() => router.push('/login')}
-              className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:bg-gray-200"
-            >
-              Sign in
-            </button>
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+      <header className="mb-8">
+        <h1 className="text-4xl font-bold tracking-tight mb-4">AI Agent Assistant</h1>
+        <p className="text-xl max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+          Your intelligent AI assistant for programming and beyond
+        </p>
+      </header>
+      
+      <main className="mb-12 flex flex-col items-center">
+        <div className="mb-8 w-full max-w-3xl">
+          <h2 className="text-2xl font-semibold mb-4">Welcome to the AI Agent</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            This is a simple static demo page showing the capabilities of our AI assistant.
+            The real functionality will be available once you log in.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-medium mb-2">Code Generation</h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Get help writing code in multiple programming languages
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-medium mb-2">Problem Solving</h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Solve complex problems with step-by-step guidance
+              </p>
+            </div>
           </div>
         </div>
-      </header>
-
-      {/* Main content */}
-      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-        <h1 className="mt-8 text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-          Introducing AI Agent
-        </h1>
         
-        <div className="mt-16 flex flex-col gap-4 sm:flex-row">
-          <Link 
-            href="/chat" 
-            className="flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-base font-medium text-black hover:bg-gray-200"
+        <div className="flex gap-4">
+          <a
+            href="/login"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Try AI Agent
-          </Link>
-          
-          <Link 
-            href="/login" 
-            className="flex items-center justify-center gap-2 rounded-full border border-gray-600 px-6 py-3 text-base font-medium text-white hover:bg-dark-700"
+            Log In
+          </a>
+          <a
+            href="/signup"
+            className="px-6 py-3 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
-            Sign in to continue
-          </Link>
-        </div>
-        
-        <Link 
-          href="/about" 
-          className="mt-6 flex items-center justify-center gap-1 text-base text-gray-400 hover:text-white"
-        >
-          Learn about AI Agent
-        </Link>
-        
-        <div className="mt-32 max-w-2xl">
-          <p className="text-xl text-gray-300">
-            We've built an AI agent which interacts in a conversational way. 
-            The dialogue format makes it possible for the agent to 
-            answer follow-up questions, admit its mistakes, challenge 
-            incorrect premises, and reject inappropriate requests.
-          </p>
+            Sign Up
+          </a>
         </div>
       </main>
+      
+      <footer className="text-sm text-gray-500 dark:text-gray-400">
+        &copy; {new Date().getFullYear()} AI Agent Assistant. All rights reserved.
+      </footer>
     </div>
   );
 }

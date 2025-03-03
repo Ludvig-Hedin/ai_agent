@@ -1,10 +1,40 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Use environment variables with fallbacks
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zkwwqjbhoclrnbqgslaj.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inprd3dxamJob2Nscm5icWdzbGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3NzE2NTEsImV4cCI6MjA1NjM0NzY1MX0.I5v8PfzMhHHvasS5j8Mam-sXa0REQdbJga0vB32muqU';
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Mock supabase client for server-side rendering and static builds
+const mockClient = {
+  auth: {
+    signUp: async () => ({ data: null, error: null }),
+    signInWithPassword: async () => ({ data: null, error: null }),
+    signOut: async () => ({ error: null }),
+    getSession: async () => ({ data: { session: null }, error: null }),
+    getUser: async () => ({ data: { user: null }, error: null }),
+    resetPasswordForEmail: async () => ({ error: null }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null })
+  }
+};
+
+// Create a real or mock client based on environment
+const createSupabaseClient = () => {
+  if (!isBrowser) {
+    return mockClient;
+  }
+
+  // Only create real client in browser environment
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
+  
+  try {
+    return createClient(supabaseUrl, supabaseAnonKey);
+  } catch (e) {
+    console.error('Error creating Supabase client:', e);
+    return mockClient;
+  }
+};
+
+export const supabase = createSupabaseClient();
 
 // Define types for user and session
 export type User = {
@@ -21,18 +51,16 @@ export type AuthSession = {
   refresh_token: string | null;
 };
 
-// Authentication helper functions
+// Authentication helper functions that work with both real and mock clients
 export const auth = {
   // Sign up with email and password
   async signUp(email: string, password: string) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    return { user: data.user, error };
+    return await supabase.auth.signUp({ email, password });
   },
   
   // Sign in with email and password
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    return { user: data.user, error };
+    return await supabase.auth.signInWithPassword({ email, password });
   },
   
   // Sign out
@@ -42,14 +70,13 @@ export const auth = {
   
   // Get current session
   async getSession() {
-    const { data, error } = await supabase.auth.getSession();
-    return { session: data.session, error };
+    return await supabase.auth.getSession();
   },
   
   // Get current user
   async getUser() {
-    const { data, error } = await supabase.auth.getUser();
-    return { user: data.user, error };
+    const { data } = await supabase.auth.getUser();
+    return data?.user;
   },
   
   // Reset password (sends password reset email)

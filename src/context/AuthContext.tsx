@@ -25,16 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkSession = async () => {
       try {
         setLoading(true);
-        const { session, error } = await auth.getSession();
+        const { data, error } = await auth.getSession();
         
         if (error) {
           console.error('Error checking session:', error);
           return;
         }
         
-        if (session) {
-          const { user: currentUser, error: userError } = await auth.getUser();
-          if (!userError && currentUser) {
+        if (data?.session) {
+          const currentUser = await auth.getUser();
+          if (currentUser) {
             setUser(currentUser as User);
           }
         }
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: string, session: any) => {
         if (session?.user) {
           setUser(session.user as User);
         } else {
@@ -69,14 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { user: authUser, error } = await auth.signIn(email, password);
+      const { data, error } = await auth.signIn(email, password);
       
       if (error) {
         return { error };
       }
       
-      setUser(authUser as User);
-      router.push('/chat');
+      if (data?.user) {
+        setUser(data.user as User);
+        router.push('/chat');
+      }
       return { error: null };
     } catch (error) {
       console.error('Sign in error:', error);
@@ -89,14 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { user: authUser, error } = await auth.signUp(email, password);
+      const { data, error } = await auth.signUp(email, password);
       
       if (error) {
         return { error };
       }
       
-      setUser(authUser as User);
-      router.push('/chat');
+      if (data?.user) {
+        setUser(data.user as User);
+        router.push('/chat');
+      }
       return { error: null };
     } catch (error) {
       console.error('Sign up error:', error);
