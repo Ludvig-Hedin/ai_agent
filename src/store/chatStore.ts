@@ -5,16 +5,6 @@ import { ChatState, Message, AIModelConfig, AgentAction } from '../types';
 // Default models available
 const defaultModels: AIModelConfig[] = [
   {
-    id: 'deepseek-chat',
-    name: 'DeepSeek (Local)',
-    provider: 'Self-hosted',
-    description: 'Locally hosted DeepSeek model via Ollama',
-    apiConfig: {
-      baseUrl: 'http://localhost:11434/api',
-      model: 'deepseek-coder',
-    }
-  },
-  {
     id: 'gpt4o',
     name: 'GPT-4o',
     provider: 'OpenAI',
@@ -31,13 +21,22 @@ const defaultModels: AIModelConfig[] = [
     apiConfig: {
       model: 'claude-3-5-sonnet-20240620',
     }
+  },
+  {
+    id: 'deepseek-chat',
+    name: 'DeepSeek Chat',
+    provider: 'DeepSeek',
+    description: 'Powerful AI model for browser automation tasks',
+    apiConfig: {
+      model: 'deepseek-chat',
+    }
   }
 ];
 
 // Initial state
 const initialState: ChatState = {
   messages: [],
-  selectedModel: defaultModels[0],
+  selectedModel: defaultModels[0], // GPT-4o is the default model
   models: defaultModels,
   agentState: {
     isThinking: false,
