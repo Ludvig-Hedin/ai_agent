@@ -1,163 +1,207 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth, supabase, User } from '@/lib/supabase';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { auth } from '@/lib/supabase';
 
+// Define the shape of our context
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  user: any | null;
+  isLoading: boolean;
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create the context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  error: null,
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {},
+  resetPassword: async () => {},
+  updatePassword: async () => {},
+  signInWithGoogle: async () => {},
+});
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+// Custom hook to use the auth context
+export const useAuth = () => useContext(AuthContext);
+
+// Provider component to wrap your app with
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
+  // Check for existing session on mount
   useEffect(() => {
-    // Check for active session on load
+    // For demo purposes, check if "mockUser" exists in localStorage
+    const mockUser = localStorage.getItem('mockUser');
+    if (mockUser) {
+      setUser(JSON.parse(mockUser));
+    }
+    
+    // Also try to get the real session from Supabase if available
     const checkSession = async () => {
       try {
-        setLoading(true);
-        const { data, error } = await auth.getSession();
-        
-        if (error) {
-          console.error('Error checking session:', error);
-          return;
-        }
-        
-        if (data?.session) {
-          const currentUser = await auth.getUser();
-          if (currentUser) {
-            setUser(currentUser as User);
-          }
+        const { data } = await auth.getSession();
+        if (data.session?.user) {
+          setUser(data.session.user);
         }
       } catch (error) {
-        console.error('Session check error:', error);
+        console.error('Error checking auth session:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
-    checkSession();
     
-    // Set up auth state change listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event: string, session: any) => {
-        if (session?.user) {
-          setUser(session.user as User);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-    };
+    checkSession();
   }, []);
 
+  // Authentication methods
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
-      const { data, error } = await auth.signInWithEmail(email, password);
+      setIsLoading(true);
+      setError(null);
       
-      if (error) {
-        return { error };
-      }
+      // For demo, set a mock user in localStorage
+      const mockUser = { id: '123', email, role: 'user' };
+      localStorage.setItem('mockUser', JSON.stringify(mockUser));
+      setUser(mockUser);
       
-      if (data?.user) {
-        setUser(data.user as User);
-        router.push('/chat');
-      }
-      return { error: null };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { error: error as Error };
+      // For real auth:
+      // const { error } = await auth.signInWithEmail(email, password);
+      // if (error) throw error;
+      
+      router.push('/chat');
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
+  
   const signUp = async (email: string, password: string) => {
     try {
-      setLoading(true);
-      const { data, error } = await auth.signUpWithEmail(email, password);
+      setIsLoading(true);
+      setError(null);
       
-      if (error) {
-        return { error };
-      }
+      // Mock successful signup
+      // For real auth:
+      // const { error } = await auth.signUpWithEmail(email, password);
+      // if (error) throw error;
       
-      if (data?.user) {
-        setUser(data.user as User);
-        router.push('/chat');
-      }
-      return { error: null };
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { error: error as Error };
+      router.push('/login?signup=success');
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign up');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
+  
   const signOut = async () => {
     try {
-      setLoading(true);
-      const { error } = await auth.signOut();
+      setIsLoading(true);
       
-      if (error) {
-        console.error('Sign out error:', error);
-        return;
-      }
+      // Clear mock user
+      localStorage.removeItem('mockUser');
+      
+      // Real auth:
+      // await auth.signOut();
       
       setUser(null);
-      router.push('/login');
-    } catch (error) {
-      console.error('Sign out error:', error);
+      
+      // Redirect to login page unless already there
+      if (pathname !== '/login') {
+        router.push('/login');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign out');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
+  
   const resetPassword = async (email: string) => {
     try {
-      setLoading(true);
-      const { error } = await auth.resetPassword(email);
-      return { error };
-    } catch (error) {
-      console.error('Reset password error:', error);
-      return { error: error as Error };
+      setIsLoading(true);
+      setError(null);
+      
+      // For real auth:
+      // const { error } = await auth.resetPassword(email);
+      // if (error) throw error;
+      
+      router.push('/login?reset=requested');
+    } catch (err: any) {
+      setError(err.message || 'Failed to reset password');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+  
+  const updatePassword = async (password: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // For real auth:
+      // const { error } = await auth.updatePassword(password);
+      // if (error) throw error;
+      
+      router.push('/login?reset=success');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const signInWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // For real auth:
+      // const { error } = await auth.signInWithGoogle();
+      // if (error) throw error;
+      
+      // For demo, create a mock Google user
+      const mockUser = { 
+        id: 'google-123', 
+        email: 'user@gmail.com', 
+        role: 'user',
+        provider: 'google'
+      };
+      localStorage.setItem('mockUser', JSON.stringify(mockUser));
+      setUser(mockUser);
+      
+      router.push('/chat');
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Google');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const value = {
     user,
-    loading,
+    isLoading,
+    error,
     signIn,
     signUp,
     signOut,
-    resetPassword
+    resetPassword,
+    updatePassword,
+    signInWithGoogle
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-} 
+}; 

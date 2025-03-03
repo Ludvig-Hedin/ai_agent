@@ -7,26 +7,29 @@ export type AuthSession = any; // Replace with proper type when available
 // Check if we are in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Get environment variables with fallbacks
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Get environment variables with fallbacks - using nullish coalescing to handle undefined
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-// Create the Supabase client
-export const supabase = isBrowser 
+// Create a dummy client for server-side to prevent issues
+const dummyClient = {
+  auth: {
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
+    signInWithOAuth: () => Promise.resolve({ data: {}, error: null }),
+    signUp: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
+    signOut: () => Promise.resolve({ error: null }),
+    resetPasswordForEmail: () => Promise.resolve({ error: null }),
+    updateUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    exchangeCodeForSession: () => Promise.resolve({ data: { session: null }, error: null }),
+  }
+};
+
+// Create the Supabase client - use a real one in the browser, dummy on server
+export const supabase = isBrowser && supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
-  : { 
-      auth: {
-        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
-        signInWithOAuth: () => Promise.resolve({ data: {}, error: null }),
-        signUp: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
-        signOut: () => Promise.resolve({ error: null }),
-        resetPasswordForEmail: () => Promise.resolve({ error: null }),
-        updateUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        exchangeCodeForSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      }
-    } as any;
+  : dummyClient as any;
 
 // Authentication helper functions
 export const auth = {
