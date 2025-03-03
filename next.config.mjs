@@ -1,18 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   images: {
-    unoptimized: true,
+    domains: ['via.placeholder.com'],
   },
-  basePath: process.env.NODE_ENV === 'production' ? '/ai_agent' : '',
-  trailingSlash: true,
   
   // Disable static optimization to prevent build issues with custom components
   reactStrictMode: true,
   
+  // Set environment variables
   env: {
-    // Provide public variables here to prevent URL construction issues
-    NEXT_PUBLIC_BASE_PATH: process.env.NODE_ENV === 'production' ? '/ai_agent' : '',
+    NEXT_PUBLIC_BASE_PATH: '',
   }
 };
 
