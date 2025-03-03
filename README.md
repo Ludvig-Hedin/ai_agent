@@ -91,6 +91,15 @@ Or connect the GitHub repository to your Vercel account for automatic deployment
 - Actions are logged for audit purposes
 - Consider using headless mode in production for better security
 
+## Authentication
+
+This project uses Supabase for authentication. The following authentication methods are supported:
+
+- Email/Password
+- Google OAuth
+
+To configure Google authentication, you need to set up a Google OAuth client in the Google Cloud Console and add the client ID and secret to your Supabase project.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
