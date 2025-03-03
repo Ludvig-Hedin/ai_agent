@@ -1,191 +1,222 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chatStore';
 import ChatInput from './ChatInput';
 import MessageItem from './MessageItem';
 import AgentState from './AgentState';
 import ModelSelector from './ModelSelector';
 import Connections from './Connections';
-import { Connection } from '@/types';
-import { apiService } from '@/services/api';
-import { FiMenu, FiPlus, FiSettings } from 'react-icons/fi';
+import { FiMessageSquare, FiMenu, FiPlus, FiLogOut } from 'react-icons/fi';
 
 export default function ChatContainer() {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [connections, setConnections] = useState<Connection[]>([
-    {
-      id: uuidv4(),
-      name: 'Google Docs',
-      type: 'google-docs',
-      isConnected: false,
-    },
-    {
-      id: uuidv4(),
-      name: 'GitHub',
-      type: 'github',
-      isConnected: false,
-    },
-  ]);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const router = useRouter();
   
-  const {
-    messages,
-    selectedModel,
-    models,
-    agentState,
+  // Get chat state from the store
+  const { 
+    messages, 
+    selectedModel, 
+    models, 
+    agentState, 
     isLoading,
-    error,
-    addMessage,
-    addAgentAction,
+    addMessage, 
+    addAgentAction, 
     setSelectedModel,
     setIsThinking,
     setIsLoading,
-    setError,
-    clearMessages,
+    clearMessages
   } = useChatStore();
-  
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-  
+
+  // Handle sending a message
   const handleSendMessage = async (content: string) => {
-    if (isLoading) return;
+    if (!content.trim()) return;
     
-    // Add user message to chat
-    addMessage({ role: 'user', content });
+    // Add user message to the state
+    addMessage({
+      role: 'user',
+      content,
+    });
+    
+    // Set loading state
+    setIsLoading(true);
+    setIsThinking(true);
     
     try {
-      setIsLoading(true);
-      setIsThinking(true);
-      
-      // Send to API
-      const response = await apiService.sendMessage({
-        message: content,
-        modelConfig: selectedModel,
+      // Call API to get response
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: {
+            role: 'user',
+            content,
+          },
+          selectedModel,
+        }),
       });
       
-      // Add assistant response
-      addMessage({ role: 'assistant', content: response.response });
+      if (!response.ok) {
+        throw new Error('Failed to get response from API');
+      }
       
-      // Add agent actions if available
-      if (response.actions && response.actions.length > 0) {
-        response.actions.forEach((action) => {
+      const data = await response.json();
+      
+      // Add assistant message to the state
+      if (data.message) {
+        addMessage(data.message);
+      }
+      
+      // Add agent actions to the state
+      if (data.agentActions && Array.isArray(data.agentActions)) {
+        data.agentActions.forEach((action: any) => {
           addAgentAction({
-            action: action.action,
-            thought: action.thought,
+            type: action.type,
+            description: action.description,
+            details: action.details
           });
         });
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      setError('Failed to send message. Please try again.');
+      addMessage({
+        role: 'system',
+        content: 'An error occurred while processing your request. Please try again.',
+      });
     } finally {
+      // Reset loading state
       setIsLoading(false);
       setIsThinking(false);
     }
   };
-  
-  const startNewChat = () => {
-    clearMessages();
-  };
-  
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+
+  const handleLogout = () => {
+    // Clear authentication
+    localStorage.removeItem('isAuthenticated');
+    // Redirect to login page
+    router.push('/');
   };
 
   return (
-    <div className="flex h-screen bg-chatgpt-light text-white">
+    <div className="flex h-screen bg-dark-800 text-white">
       {/* Sidebar */}
-      <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden flex flex-col bg-chatgpt-sidebar`}>
-        <div className="flex items-center justify-between p-3 border-b border-gray-700">
-          <h1 className="text-lg font-semibold">AI Agent</h1>
-        </div>
-        
-        <button 
-          onClick={startNewChat}
-          className="flex items-center gap-2 m-3 p-3 border border-chatgpt-border rounded-md hover:bg-chatgpt-light-hover transition-colors"
-        >
-          <FiPlus /> New Chat
-        </button>
-        
-        <div className="p-3 flex-1 overflow-y-auto">
-          {/* Past chats would go here */}
-        </div>
-        
-        <div className="p-3 border-t border-gray-700">
-          <ModelSelector
-            models={models}
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-            disabled={isLoading}
-          />
-          
-          <div className="mt-3">
-            <Connections
-              connections={connections}
-              onConnectionUpdate={setConnections}
-            />
+      <div 
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-dark-900 transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:relative md:translate-x-0`}
+      >
+        <div className="flex items-center justify-between border-b border-dark-700 p-4">
+          <div className="flex items-center gap-2">
+            <FiMessageSquare className="h-6 w-6 text-green-500" />
+            <h1 className="text-xl font-bold">AI Agent</h1>
           </div>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="md:hidden text-gray-400 hover:text-white"
+          >
+            <FiMenu className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4">
+          <button 
+            onClick={() => clearMessages()}
+            className="mb-4 flex w-full items-center gap-2 rounded-md border border-dark-500 bg-dark-700 px-3 py-2 text-sm font-medium hover:bg-dark-600"
+          >
+            <FiPlus className="h-4 w-4" />
+            New Chat
+          </button>
+          
+          <div className="mt-6 space-y-4">
+            <ModelSelector 
+              models={models}
+              selectedModel={selectedModel}
+              onSelectModel={setSelectedModel}
+            />
+            
+            <Connections connectionStatus={connectionStatus} />
+          </div>
+        </div>
+        
+        <div className="border-t border-dark-700 p-4">
+          <button 
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2 rounded-md bg-dark-700 px-3 py-2 text-sm font-medium text-red-400 hover:bg-dark-600"
+          >
+            <FiLogOut className="h-4 w-4" />
+            Logout
+          </button>
         </div>
       </div>
       
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main content */}
+      <div className="flex flex-1 flex-col">
         {/* Header */}
-        <div className="flex items-center p-3 border-b border-chatgpt-border">
+        <div className="flex items-center justify-between border-b border-dark-700 p-4">
           <button 
-            onClick={toggleSidebar}
-            className="p-2 rounded-md hover:bg-chatgpt-light-hover transition-colors mr-2"
+            onClick={() => setIsSidebarOpen(true)}
+            className="md:hidden text-gray-400 hover:text-white"
           >
-            <FiMenu />
+            <FiMenu className="h-5 w-5" />
           </button>
-          <h2 className="flex-1 text-center">{selectedModel.name} Agent</h2>
-          <button className="p-2 rounded-md hover:bg-chatgpt-light-hover transition-colors">
-            <FiSettings />
-          </button>
+          <h2 className="text-lg font-medium">Chat with {selectedModel.name}</h2>
+          <div className="h-5 w-5" /> {/* Empty div for spacing */}
         </div>
         
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4">
-          {messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center">
-              <div className="max-w-md text-center">
-                <h2 className="mb-2 text-xl font-bold">
-                  AI Agent Chat
-                </h2>
-                <p className="text-gray-300">
-                  Send a prompt to the AI agent. It can browse the web, interact with applications, and perform tasks for you.
+          <div className="mx-auto max-w-3xl">
+            {messages.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-center text-gray-400">
+                <div className="mb-4 rounded-full bg-dark-700 p-3">
+                  <FiMessageSquare className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-lg font-medium">Welcome to AI Agent</h3>
+                <p className="max-w-md">
+                  Ask the AI to perform browser tasks like "Go to GitHub and search for React repositories"
                 </p>
               </div>
-            </div>
-          ) : (
-            <>
+            ) : (
               <div className="space-y-6">
                 {messages.map((message) => (
-                  <MessageItem key={message.id} message={message} />
+                  <MessageItem 
+                    key={message.id} 
+                    message={message} 
+                  />
                 ))}
               </div>
-              <AgentState
-                isThinking={agentState.isThinking}
-                actions={agentState.actions}
-                currentTask={agentState.currentTask}
-              />
-              {error && (
-                <div className="mt-4 rounded-md bg-red-900/50 p-4 text-sm text-red-200">
-                  {error}
-                </div>
-              )}
-            </>
-          )}
-          <div ref={messagesEndRef} />
+            )}
+          </div>
         </div>
         
+        {/* Agent state display */}
+        {agentState.isThinking && (
+          <div className="border-t border-dark-700">
+            <AgentState
+              isThinking={agentState.isThinking}
+              actions={agentState.actions}
+              currentTask={agentState.currentTask}
+            />
+          </div>
+        )}
+        
         {/* Input */}
-        <div className="p-3 border-t border-chatgpt-border">
-          <ChatInput onSendMessage={handleSendMessage} isDisabled={isLoading} />
+        <div className="border-t border-dark-700 p-4">
+          <div className="mx-auto max-w-3xl">
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              isDisabled={isLoading}
+            />
+            <p className="mt-2 text-center text-xs text-gray-500">
+              AI Agent can browse the web and perform tasks for you.
+              <br />
+              Try asking it to navigate to websites, click buttons, or fill out forms.
+            </p>
+          </div>
         </div>
       </div>
     </div>

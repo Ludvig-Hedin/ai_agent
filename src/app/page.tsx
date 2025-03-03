@@ -1,9 +1,5 @@
-import ChatContainer from '@/components/ChatContainer'
+import LoginScreen from '@/components/LoginScreen';
 
 export default function Home() {
-  return (
-    <main>
-      <ChatContainer />
-    </main>
-  )
+  return <LoginScreen />;
 }
