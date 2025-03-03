@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, FormEvent, useRef, useEffect } from 'react';
-import { FiSend } from 'react-icons/fi';
+import { useState, useRef, useEffect } from 'react';
+import { FiSend, FiPaperclip, FiSearch, FiMessageCircle } from 'react-icons/fi';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -12,15 +12,15 @@ export default function ChatInput({ onSendMessage, isDisabled = false }: ChatInp
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea
+  // Auto-resize textarea based on content
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !isDisabled) {
       onSendMessage(message);
@@ -33,7 +33,7 @@ export default function ChatInput({ onSendMessage, isDisabled = false }: ChatInp
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -41,29 +41,60 @@ export default function ChatInput({ onSendMessage, isDisabled = false }: ChatInp
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-      <div className="relative flex items-center">
-        <textarea
-          ref={textareaRef}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Send a message..."
-          rows={1}
-          disabled={isDisabled}
-          className="min-h-[44px] w-full resize-none rounded-lg border border-chatgpt-border bg-chatgpt-light px-4 py-3 pr-12 text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-chatgpt-green disabled:cursor-not-allowed disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={isDisabled || !message.trim()}
-          className="absolute right-3 rounded-md p-1 text-gray-400 hover:bg-chatgpt-light-hover hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <FiSend className="h-5 w-5" />
-        </button>
-      </div>
-      <p className="mt-2 text-xs text-center text-gray-400">
-        The AI agent will browse the web and perform tasks based on your instructions.
-      </p>
-    </form>
+    <div className="relative mx-auto w-full max-w-3xl">
+      <form onSubmit={handleSubmit} className="relative">
+        <div className="overflow-hidden rounded-2xl border border-dark-400 bg-dark-800 shadow-lg">
+          <textarea
+            ref={textareaRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask a question or give instructions..."
+            className="w-full resize-none bg-transparent px-4 py-4 pr-14 text-white focus:outline-none"
+            rows={1}
+            disabled={isDisabled}
+          />
+          
+          <div className="flex items-center justify-between border-t border-dark-600 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded p-2 text-gray-400 hover:bg-dark-700 hover:text-white"
+                aria-label="Attach file"
+              >
+                <FiPaperclip size={16} />
+              </button>
+              <button
+                type="button"
+                className="rounded p-2 text-gray-400 hover:bg-dark-700 hover:text-white"
+                aria-label="Search"
+              >
+                <FiSearch size={16} />
+              </button>
+              <button
+                type="button"
+                className="rounded p-2 text-gray-400 hover:bg-dark-700 hover:text-white"
+                aria-label="Suggestions"
+              >
+                <FiMessageCircle size={16} />
+              </button>
+            </div>
+            
+            <button
+              type="submit"
+              className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                message.trim() && !isDisabled
+                  ? 'bg-green-500 text-white hover:bg-green-600'
+                  : 'bg-dark-600 text-gray-400'
+              }`}
+              disabled={!message.trim() || isDisabled}
+              aria-label="Send message"
+            >
+              <FiSend size={16} />
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
   );
 } 

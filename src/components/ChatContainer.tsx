@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chatStore';
 import ChatInput from './ChatInput';
@@ -8,12 +8,13 @@ import MessageItem from './MessageItem';
 import AgentState from './AgentState';
 import ModelSelector from './ModelSelector';
 import Connections from './Connections';
-import { FiMessageSquare, FiMenu, FiPlus, FiLogOut } from 'react-icons/fi';
+import ChatWelcome from './ChatWelcome';
+import { FiEdit, FiChevronDown, FiLogIn } from 'react-icons/fi';
 
 export default function ChatContainer() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const router = useRouter();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Get chat state from the store
   const { 
@@ -29,6 +30,13 @@ export default function ChatContainer() {
     setIsLoading,
     clearMessages
   } = useChatStore();
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
@@ -94,129 +102,72 @@ export default function ChatContainer() {
     }
   };
 
-  const handleLogout = () => {
-    // Clear authentication
-    localStorage.removeItem('isAuthenticated');
-    // Redirect to login page
-    router.push('/');
+  const handleLoginRedirect = () => {
+    router.push('/login');
   };
 
   return (
-    <div className="flex h-screen bg-dark-800 text-white">
-      {/* Sidebar */}
-      <div 
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-dark-900 transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:relative md:translate-x-0`}
-      >
-        <div className="flex items-center justify-between border-b border-dark-700 p-4">
+    <div className="flex min-h-screen flex-col bg-black text-white">
+      {/* Header */}
+      <header className="border-b border-dark-700 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-2">
-            <FiMessageSquare className="h-6 w-6 text-green-500" />
-            <h1 className="text-xl font-bold">AI Agent</h1>
+            <FiEdit className="h-5 w-5 text-gray-400" />
+            <div className="relative">
+              <button className="flex items-center gap-2 text-gray-300 hover:text-white">
+                <span>AI Agent</span>
+                <FiChevronDown className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <button 
-            onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden text-gray-400 hover:text-white"
+            onClick={handleLoginRedirect}
+            className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:bg-gray-200"
           >
-            <FiMenu className="h-5 w-5" />
+            <span className="flex items-center gap-2">
+              <FiLogIn className="h-4 w-4" />
+              <span>Sign in</span>
+            </span>
           </button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-4">
-          <button 
-            onClick={() => clearMessages()}
-            className="mb-4 flex w-full items-center gap-2 rounded-md border border-dark-500 bg-dark-700 px-3 py-2 text-sm font-medium hover:bg-dark-600"
-          >
-            <FiPlus className="h-4 w-4" />
-            New Chat
-          </button>
-          
-          <div className="mt-6 space-y-4">
-            <ModelSelector 
-              models={models}
-              selectedModel={selectedModel}
-              onSelectModel={setSelectedModel}
-            />
-            
-            <Connections connectionStatus={connectionStatus} />
-          </div>
-        </div>
-        
-        <div className="border-t border-dark-700 p-4">
-          <button 
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-md bg-dark-700 px-3 py-2 text-sm font-medium text-red-400 hover:bg-dark-600"
-          >
-            <FiLogOut className="h-4 w-4" />
-            Logout
-          </button>
-        </div>
-      </div>
-      
+      </header>
+
       {/* Main content */}
-      <div className="flex flex-1 flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-dark-700 p-4">
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="md:hidden text-gray-400 hover:text-white"
-          >
-            <FiMenu className="h-5 w-5" />
-          </button>
-          <h2 className="text-lg font-medium">Chat with {selectedModel.name}</h2>
-          <div className="h-5 w-5" /> {/* Empty div for spacing */}
+      <main className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-3xl">
+          {messages.length === 0 ? (
+            <ChatWelcome onSuggestionClick={handleSendMessage} />
+          ) : (
+            <div className="space-y-6 px-4 py-8">
+              {messages.map((message, index) => (
+                <MessageItem 
+                  key={index} 
+                  message={message} 
+                />
+              ))}
+              {agentState.isThinking && (
+                <AgentState
+                  isThinking={agentState.isThinking}
+                  actions={agentState.actions}
+                  currentTask={agentState.currentTask}
+                />
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </div>
-        
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="mx-auto max-w-3xl">
-            {messages.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center text-center text-gray-400">
-                <div className="mb-4 rounded-full bg-dark-700 p-3">
-                  <FiMessageSquare className="h-6 w-6" />
-                </div>
-                <h3 className="mb-2 text-lg font-medium">Welcome to AI Agent</h3>
-                <p className="max-w-md">
-                  Ask the AI to perform browser tasks like "Go to GitHub and search for React repositories"
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {messages.map((message) => (
-                  <MessageItem 
-                    key={message.id} 
-                    message={message} 
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Agent state display */}
-        {agentState.isThinking && (
-          <div className="border-t border-dark-700">
-            <AgentState
-              isThinking={agentState.isThinking}
-              actions={agentState.actions}
-              currentTask={agentState.currentTask}
-            />
-          </div>
-        )}
-        
-        {/* Input */}
-        <div className="border-t border-dark-700 p-4">
-          <div className="mx-auto max-w-3xl">
-            <ChatInput
-              onSendMessage={handleSendMessage}
-              isDisabled={isLoading}
-            />
-            <p className="mt-2 text-center text-xs text-gray-500">
-              AI Agent can browse the web and perform tasks for you.
-              <br />
-              Try asking it to navigate to websites, click buttons, or fill out forms.
-            </p>
-          </div>
+      </main>
+
+      {/* Input */}
+      <div className="border-t border-dark-700 bg-black px-4 py-4">
+        <div className="mx-auto max-w-3xl">
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            isDisabled={isLoading}
+          />
+          <p className="mt-2 text-center text-xs text-gray-500">
+            By sending messages to AI Agent you agree to our terms and confirm you have read our privacy policy.
+          </p>
         </div>
       </div>
     </div>

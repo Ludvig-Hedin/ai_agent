@@ -1,79 +1,80 @@
 'use client';
 
 import { useState } from 'react';
-import { FiActivity, FiChevronDown, FiChevronUp, FiCpu } from 'react-icons/fi';
 import { AgentAction } from '@/types';
+import { FiCpu, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 interface AgentStateProps {
-  isThinking: boolean;
-  actions: AgentAction[];
-  currentTask: string | null;
+  isThinking?: boolean;
+  currentTask?: string;
+  actions?: AgentAction[];
 }
 
-export default function AgentState({ isThinking, actions, currentTask }: AgentStateProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
-  
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
-  
-  if (actions.length === 0 && !isThinking && !currentTask) {
-    return null;
-  }
-  
+export default function AgentState({ 
+  isThinking = false, 
+  currentTask = '', 
+  actions = [] 
+}: AgentStateProps) {
+  const [showActions, setShowActions] = useState(false);
+
+  if (!isThinking) return null;
+
   return (
-    <div className="max-w-3xl mx-auto my-4 rounded-lg border border-chatgpt-border bg-chatgpt-light-hover shadow-md overflow-hidden">
-      <div 
-        className="flex cursor-pointer items-center justify-between border-b border-chatgpt-border px-4 py-3"
-        onClick={toggleExpand}
-      >
-        <div className="flex items-center gap-2">
-          <FiCpu className="h-5 w-5 text-chatgpt-green" />
-          <h3 className="text-sm font-medium text-white">
-            Agent Thinking {isThinking && <span className="animate-pulse ml-2">Processing...</span>}
-          </h3>
-        </div>
-        {isExpanded ? (
-          <FiChevronUp className="h-4 w-4 text-gray-400" />
-        ) : (
-          <FiChevronDown className="h-4 w-4 text-gray-400" />
-        )}
-      </div>
-      
-      {isExpanded && (
-        <div className="p-4">
-          {currentTask && (
-            <div className="mb-4">
-              <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-gray-400">
-                <FiActivity className="h-4 w-4" /> Current Task
-              </h4>
-              <p className="text-sm text-gray-300">{currentTask}</p>
-            </div>
-          )}
+    <div className="py-5 bg-dark-800">
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-start gap-4 px-4">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-600">
+            <FiCpu size={16} className="text-white" />
+          </div>
           
-          {actions.length > 0 && (
-            <div>
-              <h4 className="mb-2 text-xs font-semibold uppercase text-gray-400">Actions</h4>
-              <div className="space-y-3">
-                {actions.map((action, index) => (
-                  <div key={index} className="rounded-md border border-chatgpt-border bg-chatgpt-light p-3">
-                    <h5 className="mb-1 text-sm font-medium text-white">{action.action}</h5>
-                    {action.thought && (
-                      <div className="mt-2 text-xs text-gray-300">
-                        <p className="font-medium text-gray-400">Thought Process:</p>
-                        <p className="mt-1 whitespace-pre-wrap">{action.thought}</p>
-                      </div>
-                    )}
-                    <div className="mt-1 text-right text-xs text-gray-500">
-                      {new Date(action.timestamp).toLocaleTimeString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-300 mb-1">
+              AI Agent
+            </p>
+            
+            <div className="flex items-center gap-2 text-white mb-2">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+              <span className="font-medium">Thinking...</span>
             </div>
-          )}
+            
+            {currentTask && (
+              <p className="mb-2 text-sm text-gray-400">
+                <span className="font-medium">Current task:</span> {currentTask}
+              </p>
+            )}
+            
+            {actions.length > 0 && (
+              <div className="mt-3 rounded-md bg-dark-700 p-1">
+                <button
+                  onClick={() => setShowActions(!showActions)}
+                  className="flex w-full items-center justify-between rounded px-3 py-2 text-sm font-medium text-gray-300 hover:bg-dark-600"
+                >
+                  <span>Actions taken ({actions.length})</span>
+                  {showActions ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+                </button>
+                
+                {showActions && (
+                  <div className="mt-1 px-3 pb-3">
+                    <ul className="space-y-2 text-sm text-gray-300">
+                      {actions.map((action, index) => (
+                        <li key={index} className="rounded bg-dark-600 p-2">
+                          <div className="font-medium text-white">{action.type}</div>
+                          <div className="text-xs text-gray-400">{action.description}</div>
+                          {action.details && (
+                            <div className="mt-1 rounded bg-dark-800 p-2 text-xs font-mono">
+                              {action.details}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 } 
